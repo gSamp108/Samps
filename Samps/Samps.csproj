@@ -67,6 +67,12 @@
     <Folder Include="Common\" />
     <Folder Include="Server\" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MonoGame.Primitives2D\Primitives2D.csproj">
+      <Project>{39ad1482-1881-4852-a05d-dc61b0d3446a}</Project>
+      <Name>Primitives2D</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\MonoGame\v3.0\MonoGame.Content.Builder.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
