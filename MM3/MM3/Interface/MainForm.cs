@@ -42,14 +42,30 @@ namespace MM3.Interface
             }
         }
 
+        private sealed class MouseInput
+        {
+            public bool LeftButtonDown;
+            public bool RightButtonDown;
+            public Point LeftButtonDownPosition;
+            public Point RightButtonDownPosition;
+        }
+
         private Simulation.World world;
         private Point cameraPosition;
+        private Point cameraDragPosition;
         private UIOptions uiOptions = new UIOptions();
+        private MouseInput mouseInput = new MouseInput();
 
         public MainForm()
         {
             InitializeComponent();
             this.world = new Simulation.World(100);
+        }
+
+        protected override void OnResizeEnd(EventArgs e)
+        {
+            base.OnResizeEnd(e);
+            this.Invalidate();
         }
 
         protected override void OnKeyDown(KeyEventArgs e)
@@ -60,6 +76,40 @@ namespace MM3.Interface
             if (e.KeyCode == Keys.F2) this.uiOptions.RenderDebugInfo = !this.uiOptions.RenderDebugInfo;
 
             this.Invalidate();
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            base.OnMouseDown(e);
+            if (e.Button == MouseButtons.Left)
+            {
+                this.mouseInput.LeftButtonDown = true;
+                this.mouseInput.LeftButtonDownPosition = e.Location;
+            }
+            if (e.Button == MouseButtons.Right)
+            {
+                this.mouseInput.RightButtonDown = true;
+                this.mouseInput.RightButtonDownPosition = e.Location;
+                this.cameraDragPosition = this.cameraPosition;
+            }
+        }
+
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            base.OnMouseMove(e);
+            if (this.mouseInput.RightButtonDown)
+            {
+                var cameraDragDelta = new Point(this.mouseInput.RightButtonDownPosition.X - e.X, this.mouseInput.RightButtonDownPosition.Y - e.Y);
+                this.cameraPosition = new Point(this.cameraDragPosition.X - cameraDragDelta.X, this.cameraDragPosition.Y - cameraDragDelta.Y);
+                this.Invalidate();
+            }
+        }
+
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            base.OnMouseUp(e);
+            if (e.Button == MouseButtons.Left)this.mouseInput.LeftButtonDown = false;
+            if (e.Button == MouseButtons.Right)this.mouseInput.RightButtonDown = false;
         }
 
         protected override void OnPaint(PaintEventArgs e)
