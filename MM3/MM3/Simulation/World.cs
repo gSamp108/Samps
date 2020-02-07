@@ -16,20 +16,8 @@ namespace MM3.Simulation
         public World (int size)
         {
             this.Size = size;
-            this.tiles = new Tile[this.Size, this.Size];
-            this.TileGeneration();
-        }
-
-        private void TileGeneration()
-        {
-            for (int x = 0; x < this.Size; x++)
-            {
-                for (int y = 0; y < this.Size; y++)
-                {
-                    this.tiles[x, y] = new Tile(this, new Position(x, y));
-                    if (this.Rng.Next(5) > 0) this.tiles[x, y].IsLand = true;
-                }
-            }
+            var worldGenerator = new WorldGenerator();
+            this.tiles = worldGenerator.Generate(this.Rng, this);
         }
 
         public void Tick()

@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using MM3.Simulation;
 
 namespace MM3.Interface
 {
@@ -17,6 +18,12 @@ namespace MM3.Interface
             public bool ShowGrid = false;
             public int TileSize = 16;
             public bool RenderDebugInfo = false;
+            public Size MountainRenderSize = new Size(4, 6);
+            public int MountainsRenderedPerTile = 3;
+            public Size ForestRenderSize = new Size(4, 6);
+            public int ForestsRenderedPerTile = 3;
+            public Size HillRenderSize = new Size(6, 4);
+            public int HillsRenderedPerTile = 3;
         }
 
         private sealed class TextRenderer
@@ -50,16 +57,23 @@ namespace MM3.Interface
             public Point RightButtonDownPosition;
         }
 
+        private sealed class WorldTileRenderingData
+        {
+            public Point[] RenderPoints;
+        }
+
         private Simulation.World world;
         private Point cameraPosition;
         private Point cameraDragPosition;
         private UIOptions uiOptions = new UIOptions();
         private MouseInput mouseInput = new MouseInput();
+        private Dictionary<Simulation.Position, WorldTileRenderingData> tileRenderingData = new Dictionary<Simulation.Position, WorldTileRenderingData>();
+        private Random rng = new Random();
 
         public MainForm()
         {
             InitializeComponent();
-            this.world = new Simulation.World(100);
+            this.world = new World(100);
         }
 
         protected override void OnResizeEnd(EventArgs e)
@@ -74,6 +88,8 @@ namespace MM3.Interface
 
             if (e.KeyCode == Keys.F1) this.uiOptions.ShowGrid = !this.uiOptions.ShowGrid;
             if (e.KeyCode == Keys.F2) this.uiOptions.RenderDebugInfo = !this.uiOptions.RenderDebugInfo;
+            if (e.KeyCode == Keys.F3) (new DrawingForm()).Show();
+            if (e.KeyCode == Keys.F4) this.world = new World(100);
 
             this.Invalidate();
         }
@@ -100,7 +116,8 @@ namespace MM3.Interface
             if (this.mouseInput.RightButtonDown)
             {
                 var cameraDragDelta = new Point(this.mouseInput.RightButtonDownPosition.X - e.X, this.mouseInput.RightButtonDownPosition.Y - e.Y);
-                this.cameraPosition = new Point(this.cameraDragPosition.X - cameraDragDelta.X, this.cameraDragPosition.Y - cameraDragDelta.Y);
+                this.cameraPosition = new Point(this.cameraDragPosition.X + cameraDragDelta.X, this.cameraDragPosition.Y + cameraDragDelta.Y);
+                this.cameraPosition = this.cameraPosition.Wrap(new Rectangle(0, 0, this.world.Size * this.uiOptions.TileSize, this.world.Size * this.uiOptions.TileSize));
                 this.Invalidate();
             }
         }
@@ -118,11 +135,8 @@ namespace MM3.Interface
             var canvas = e.Graphics;
             var centerScreen = new Point(this.ClientRectangle.Width / 2, this.ClientRectangle.Height / 2);
             var tilesPerScreen = new Point((this.ClientRectangle.Width / this.uiOptions.TileSize) + 1, (this.ClientRectangle.Height / this.uiOptions.TileSize) + 1);
-            var tilesPerHalfScreen = new Point((tilesPerScreen.X / 2) + 1, (tilesPerScreen.Y / 2) + 1);
             var cameraTile = this.world.WrapPosition(new Simulation.Position(this.cameraPosition.X / this.uiOptions.TileSize, this.cameraPosition.Y / this.uiOptions.TileSize));
-            var cameraTileOffset = new Point(this.cameraPosition.X - (cameraTile.X * this.uiOptions.TileSize), this.cameraPosition.Y - (cameraTile.Y * this.uiOptions.TileSize));
-            var renderOriginTilePosition = this.world.WrapPosition(new Simulation.Position(cameraTile.X - tilesPerHalfScreen.X, cameraTile.Y - tilesPerHalfScreen.Y));
-            var renderOriginTileScreenPosition = new Point(centerScreen.X + (cameraTileOffset.X - (tilesPerHalfScreen.X * this.uiOptions.TileSize)), centerScreen.Y + (cameraTileOffset.Y - (tilesPerHalfScreen.Y * this.uiOptions.TileSize)));
+            var cameraTileOffset = new Point((cameraTile.X * this.uiOptions.TileSize) - this.cameraPosition.X, (cameraTile.Y * this.uiOptions.TileSize) - this.cameraPosition.Y);
 
             canvas.Clear(Color.Black);
 
@@ -130,30 +144,103 @@ namespace MM3.Interface
             {
                 for (var y = 0; y <= tilesPerScreen.Y; y++)
                 {
-                    var currentTilePosition = this.world.WrapPosition(new Simulation.Position(renderOriginTilePosition.X + x, renderOriginTilePosition.Y + y));
-                    var currentTileOffset = new Point(renderOriginTileScreenPosition.X + (x * this.uiOptions.TileSize), renderOriginTileScreenPosition.Y + (y * this.uiOptions.TileSize));
-                    var currentTileRenderArea = new Rectangle(currentTileOffset.X, currentTileOffset.Y, this.uiOptions.TileSize, this.uiOptions.TileSize);
+                    var currentTilePosition = this.world.WrapPosition(new Simulation.Position(cameraTile.X + x, cameraTile.Y + y));
+                    var currentTileRenderArea = new Rectangle(cameraTileOffset.X + (x*this.uiOptions.TileSize), cameraTileOffset.Y + (y * this.uiOptions.TileSize), this.uiOptions.TileSize, this.uiOptions.TileSize);
                     var currentTile = this.world.GetTile(currentTilePosition);
-                    if (currentTile.IsLand) canvas.FillRectangle(Brushes.DarkGreen, currentTileRenderArea);
-                    else canvas.FillRectangle(Brushes.DarkBlue, currentTileRenderArea);
+                    if (currentTile.Terrain== Simulation.Tile.TerrainTypes.Ocean) canvas.FillRectangle(Brushes.DarkBlue, currentTileRenderArea);
+                    else if (currentTile.Terrain == Simulation.Tile.TerrainTypes.Shallow) canvas.FillRectangle(Brushes.Blue, currentTileRenderArea);
+                    else
+                    {
+                        if (currentTile.Biome == Tile.BiomeTypes.Cold) canvas.FillRectangle(Brushes.LightGray, currentTileRenderArea);
+                        else if (currentTile.Biome == Tile.BiomeTypes.Hot) canvas.FillRectangle(Brushes.YellowGreen, currentTileRenderArea);
+                        else canvas.FillRectangle(Brushes.DarkGreen, currentTileRenderArea);
+
+                        if (currentTile.Terrain == Simulation.Tile.TerrainTypes.Forest) this.PaintForest(currentTile,canvas, currentTileRenderArea);
+                        else if (currentTile.Terrain == Simulation.Tile.TerrainTypes.Hill) this.PaintHill(currentTile, canvas, currentTileRenderArea);
+                        else if (currentTile.Terrain == Simulation.Tile.TerrainTypes.Mountain) this.PaintMountain(currentTile, canvas, currentTileRenderArea);
+                    }
                     if (this.uiOptions.ShowGrid) canvas.DrawRectangle(Pens.Black, currentTileRenderArea);
                 }
             }
-
-            canvas.DrawLine(Pens.White, new Point(centerScreen.X, centerScreen.Y - 8), new Point(centerScreen.X, centerScreen.Y + 8));
-            canvas.DrawLine(Pens.White, new Point(centerScreen.X - 8, centerScreen.Y), new Point(centerScreen.X + 8, centerScreen.Y));
 
             if (this.uiOptions.RenderDebugInfo)
             {
                 var textRenderer = new TextRenderer(canvas, this.Font, new Point(10, 10));
                 textRenderer.Draw("centerScreen: " + centerScreen.ToString());
                 textRenderer.Draw("tilesPerScreen: " + tilesPerScreen.ToString());
-                textRenderer.Draw("tilesPerHalfScreen: " + tilesPerHalfScreen.ToString());
                 textRenderer.Draw("cameraTile: " + cameraTile.ToString());
                 textRenderer.Draw("cameraTileOffset: " + cameraTileOffset.ToString());
-                textRenderer.Draw("renderOriginTilePosition: " + renderOriginTilePosition.ToString());
-                textRenderer.Draw("renderOriginTileScreenPosition: " + renderOriginTileScreenPosition.ToString());
             }
+        }
+
+        private void GenerateTileRenderingData(Position tilePosition, Size availableRenderSpace, int featuresPerTile)
+        {
+            var renderingData = new WorldTileRenderingData() { RenderPoints = new Point[featuresPerTile] };
+            for (int i = 0; i < renderingData.RenderPoints.Length; i++)
+            {
+                renderingData.RenderPoints[i] = new Point(this.rng.Next(availableRenderSpace.Width), this.rng.Next(availableRenderSpace.Height));
+            }
+            this.tileRenderingData.Add(tilePosition, renderingData);
+        }
+
+        private void PaintHill(Tile tile, Graphics canvas, Rectangle renderArea)
+        {
+            if (!this.tileRenderingData.ContainsKey(tile.Position)) this.GenerateTileRenderingData(tile.Position, new Size(this.uiOptions.TileSize - this.uiOptions.HillRenderSize.Width, this.uiOptions.TileSize - this.uiOptions.HillRenderSize.Height), this.uiOptions.HillsRenderedPerTile);
+
+            var currentRenderingData = this.tileRenderingData[tile.Position];
+            var humpWidthDistance = this.uiOptions.HillRenderSize.Width / 4;
+            var humpHeightDistance = this.uiOptions.HillRenderSize.Height / 2;
+            for (int i = 0; i < currentRenderingData.RenderPoints.Length; i++)
+            {
+                var renderOrigin = new Point(renderArea.X + currentRenderingData.RenderPoints[i].X, renderArea.Y + currentRenderingData.RenderPoints[i].Y);
+                var renderPath = new Point[]
+                {
+                    new Point(renderOrigin.X, renderOrigin.Y + this.uiOptions.HillRenderSize.Height),
+                    new Point(renderOrigin.X + humpWidthDistance, renderOrigin.Y+humpHeightDistance),
+                    new Point(renderOrigin.X + (humpWidthDistance*2), renderOrigin.Y),
+                    new Point(renderOrigin.X + (humpWidthDistance*3), renderOrigin.Y+humpHeightDistance),
+                    new Point(renderOrigin.X + this.uiOptions.HillRenderSize.Width, renderOrigin.Y + this.uiOptions.HillRenderSize.Height),
+                };
+
+                canvas.FillPolygon(Brushes.DarkGoldenrod, renderPath);
+                canvas.DrawLines(Pens.Black, renderPath);
+            }
+        }
+
+        private void PaintMountain(Simulation.Tile tile, Graphics canvas, Rectangle renderArea)
+        {
+            if (!this.tileRenderingData.ContainsKey(tile.Position)) this.GenerateTileRenderingData(tile.Position, new Size(this.uiOptions.TileSize - this.uiOptions.MountainRenderSize.Width, this.uiOptions.TileSize - this.uiOptions.MountainRenderSize.Height), this.uiOptions.MountainsRenderedPerTile);
+
+            var currentRenderingData = this.tileRenderingData[tile.Position];
+            var peakDistance = this.uiOptions.MountainRenderSize.Width / 2;
+            for (int i = 0; i < currentRenderingData.RenderPoints.Length; i++)
+            {
+                var renderOrigin = new Point(renderArea.X + currentRenderingData.RenderPoints[i].X, renderArea.Y + currentRenderingData.RenderPoints[i].Y);
+                var renderPath = new Point[]
+                {
+                    new Point(renderOrigin.X, renderOrigin.Y + this.uiOptions.MountainRenderSize.Height),
+                    new Point(renderOrigin.X + peakDistance, renderOrigin.Y),
+                    new Point(renderOrigin.X + this.uiOptions.MountainRenderSize.Width, renderOrigin.Y + this.uiOptions.MountainRenderSize.Height)
+                };
+
+                canvas.FillPolygon(Brushes.Gray, renderPath);
+                canvas.DrawLines(Pens.Black, renderPath);
+            }
+        }
+
+        private void PaintForest(Simulation.Tile tile, Graphics canvas, Rectangle renderArea)
+        {
+            if (!this.tileRenderingData.ContainsKey(tile.Position)) this.GenerateTileRenderingData(tile.Position, new Size(this.uiOptions.TileSize - this.uiOptions.ForestRenderSize.Width, this.uiOptions.TileSize - this.uiOptions.ForestRenderSize.Height), this.uiOptions.ForestsRenderedPerTile);
+
+            var currentRenderingData = this.tileRenderingData[tile.Position];
+            for (int i = 0; i < currentRenderingData.RenderPoints.Length; i++)
+            {
+                var renderOrigin = new Point(renderArea.X + currentRenderingData.RenderPoints[i].X, renderArea.Y + currentRenderingData.RenderPoints[i].Y);
+                canvas.FillEllipse(Brushes.Green, new Rectangle(renderOrigin.X, renderOrigin.Y, this.uiOptions.ForestRenderSize.Width, this.uiOptions.ForestRenderSize.Height / 2));
+                canvas.DrawEllipse(Pens.Black, new Rectangle(renderOrigin.X, renderOrigin.Y, this.uiOptions.ForestRenderSize.Width, this.uiOptions.ForestRenderSize.Height / 2));
+                canvas.DrawLine(Pens.Black, new Point(renderOrigin.X + (this.uiOptions.ForestRenderSize.Width / 2), renderOrigin.Y + (this.uiOptions.ForestRenderSize.Height / 2)), new Point(renderOrigin.X + (this.uiOptions.ForestRenderSize.Width / 2), renderOrigin.Y + this.uiOptions.ForestRenderSize.Height));
+            }
+
         }
     }
 }

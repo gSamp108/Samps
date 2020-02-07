@@ -8,9 +8,13 @@ namespace MM3.Simulation
 {
     public sealed class Tile
     {
+        public enum TerrainTypes { Ocean, Shallow, Flats, Forest, Hill, Mountain }
+        public enum BiomeTypes { Cold, Temperate, Hot }
+
         public World World;
         public Position Position;
-        public bool IsLand;
+        public TerrainTypes Terrain;
+        public BiomeTypes Biome;
 
         public Tile(World world, Position position)
         {
