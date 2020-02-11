@@ -10,12 +10,15 @@ namespace MM3.Simulation
     {
         public Random Rng = new Random();
         public int Size;
+        public Time Time = new Time();
+        public Dice Dice;
 
         private Tile[,] tiles;
 
         public World (int size)
         {
             this.Size = size;
+            this.Dice = new Dice(this.Rng);
             var worldGenerator = new WorldGenerator();
             this.tiles = worldGenerator.Generate(this.Rng, this);
         }

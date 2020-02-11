@@ -15,24 +15,29 @@ namespace MM3.Simulation
         public int MountainRarity = 48;
         public float ColdBiomeCoverage = 0.3f;
         public float HotBiomeCoverage = 0.3f;
+        public int HeatmapSpreadModifier = 2;
 
-        public Dictionary<Position, int> TileWeight;
-        public HashSet<Position> ClosedLandTiles;
-        public HashSet<Position> OpenLandTiles;
+        public Dictionary<Position, int> TileWeight = new Dictionary<Position, int>();
+        public HashSet<Position> ClosedLandTiles = new HashSet<Position>();
+        public HashSet<Position> OpenLandTiles = new HashSet<Position>();
         public int MinimumLandTiles;
         public Tile[,] Result;
         public int WorldSize;
         public Random Rng;
-        public Queue<Position> TilesQueuedToClose;
+        public Queue<Position> TilesQueuedToClose = new Queue<Position>();
         public Bounds WorldBounds;
         public World World;
         public Position HeatmapOrigin;
-        public Dictionary<Position, int> Heatmap;
-        public HashSet<Position> CurrentOpenHeatmapTiles;
-        public HashSet<Position> NextOpenHeatmapTiles;
+        public Dictionary<Position, int> Heatmap = new Dictionary<Position, int>();
+        public HashSet<Position> CurrentOpenHeatmapTiles = new HashSet<Position>();
+        public HashSet<Position> NextOpenHeatmapTiles = new HashSet<Position>();
         public int HighestHeatIndex;
         public int ColdBiomeIndex;
         public int HotBiomeIndex;
+        public int ColdestLandTileIndex;
+        public HashSet<Position> ColdestLandTiles = new HashSet<Position>();
+        public int HottestLandTileIndex;
+        public HashSet<Position> HottestLandTiles = new HashSet<Position>();
 
         public Tile[,] Generate(Random rng, World world)
         {
@@ -42,21 +47,11 @@ namespace MM3.Simulation
             this.WorldBounds = new Bounds(this.WorldSize, this.WorldSize);
             this.Result = new Tile[this.WorldSize, this.WorldSize];
             this.MinimumLandTiles = (int)(((float)(this.WorldSize * this.WorldSize)) * this.LandCoverage);
-            this.ClosedLandTiles = new HashSet<Position>();
-            this.OpenLandTiles = new HashSet<Position>();
-            this.TileWeight = new Dictionary<Position, int>();
-            this.TilesQueuedToClose = new Queue<Position>();
-            this.Heatmap = new Dictionary<Position, int>();
-            this.CurrentOpenHeatmapTiles = new HashSet<Position>();
-            this.NextOpenHeatmapTiles = new HashSet<Position>();
-            this.HighestHeatIndex = 0;
-            this.ColdBiomeIndex = 0;
-            this.HotBiomeIndex = 0;
 
             this.SeedIslands();
             this.GenerateIslands();
-            this.GenerateHeatmap();
             this.GenerateTerrain();
+            this.GenerateHeatmap();
 
             return this.Result;
         }
@@ -77,6 +72,41 @@ namespace MM3.Simulation
                     this.CurrentOpenHeatmapTiles.Remove(currentTile);
                     if (!this.Heatmap.ContainsKey(currentTile)) this.Heatmap.Add(currentTile, 0);
                     var currentHeatIndex = this.Heatmap[currentTile];
+
+                    var currentTileTerrain = this.Result[currentTile.X, currentTile.Y].Terrain;
+
+                    if (currentTileTerrain != Tile.TerrainTypes.Ocean && currentTileTerrain != Tile.TerrainTypes.Shallow)
+                    {
+                        if (this.ColdestLandTiles.Count == 0)
+                        {
+                            this.ColdestLandTileIndex = currentHeatIndex;
+                            this.ColdestLandTiles.Add(currentTile);
+                        }
+                        else
+                        {
+                            if (currentHeatIndex < this.ColdestLandTileIndex)
+                            {
+                                this.ColdestLandTileIndex = currentHeatIndex;
+                                this.ColdestLandTiles.Clear();
+                                this.ColdestLandTiles.Add(currentTile);
+                            }
+                            else if (currentHeatIndex == this.ColdestLandTileIndex)
+                            {
+                                this.ColdestLandTiles.Add(currentTile);
+                            }
+                        }
+                        if (currentHeatIndex > this.HottestLandTileIndex)
+                        {
+                            this.HottestLandTileIndex = currentHeatIndex;
+                            this.HottestLandTiles.Clear();
+                            this.HottestLandTiles.Add(currentTile);
+                        }
+                        else if (currentHeatIndex == this.HottestLandTileIndex)
+                        {
+                            this.HottestLandTiles.Add(currentTile);
+                        }
+                    }
+
                     foreach (var adjacentTile in currentTile.Adjacent)
                     {
                         var wrappedAdjacentTile = adjacentTile.Wrap(this.WorldBounds);
@@ -91,7 +121,52 @@ namespace MM3.Simulation
             }
 
             this.ColdBiomeIndex = (int)(this.HighestHeatIndex * this.ColdBiomeCoverage);
-            this.HotBiomeIndex = this.HighestHeatIndex - ((int)(this.HighestHeatIndex * this.ColdBiomeCoverage));
+            this.HotBiomeIndex = (int)(this.HighestHeatIndex * this.HotBiomeCoverage);
+
+            this.GenerateBiome(Tile.BiomeTypes.Cold, this.ColdBiomeIndex, this.ColdestLandTiles.Random());
+            this.GenerateBiome(Tile.BiomeTypes.Hot, this.HotBiomeIndex, this.HottestLandTiles.Random());
+        }
+
+        private void GenerateBiome(Tile.BiomeTypes biome, int maximumHeatIndex, Position origin)
+        {
+            var openTiles = new HashSet<Position>();
+            var closedTiles = new HashSet<Position>();
+            var heatmap = new Dictionary<Position, int>();
+
+            openTiles.Add(origin);
+
+            while (openTiles.Count > 0)
+            {
+                var currentTile = openTiles.Random();
+                openTiles.Remove(currentTile);
+                closedTiles.Add(currentTile);
+
+                if (!heatmap.ContainsKey(currentTile)) heatmap.Add(currentTile, 0);
+                var spreadHeatIndex = heatmap[currentTile] + 1;
+
+                if (spreadHeatIndex < maximumHeatIndex)
+                {
+                    foreach (var adjacentTile in currentTile.Adjacent)
+                    {
+                        var wrappedAdjacentTile = adjacentTile.Wrap(this.WorldBounds);
+                        var adjacentTileTerrain = this.Result[wrappedAdjacentTile.X, wrappedAdjacentTile.Y].Terrain;
+                        if (adjacentTileTerrain != Tile.TerrainTypes.Ocean && adjacentTileTerrain != Tile.TerrainTypes.Shallow)
+                        {
+                            if (!heatmap.ContainsKey(wrappedAdjacentTile))
+                            {
+                                openTiles.Add(wrappedAdjacentTile);
+                                heatmap.Add(wrappedAdjacentTile, spreadHeatIndex);
+                                if (this.Rng.Next(this.HeatmapSpreadModifier) == 0) heatmap[wrappedAdjacentTile] += 1;
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach (var tile in closedTiles)
+            {
+                this.Result[tile.X, tile.Y].Biome = biome;
+            }
         }
 
         private void GenerateTerrain()
@@ -115,9 +190,7 @@ namespace MM3.Simulation
                         tile.Terrain = Tile.TerrainTypes.Shallow;
                     }
 
-                    if (this.Heatmap[tilePosition] <= this.ColdBiomeIndex) tile.Biome = Tile.BiomeTypes.Cold;
-                    else if (this.Heatmap[tilePosition] >= this.HotBiomeIndex) tile.Biome = Tile.BiomeTypes.Hot;
-                    else tile.Biome = Tile.BiomeTypes.Temperate;
+                    tile.Biome = Tile.BiomeTypes.Temperate;
                 }
             }
         }

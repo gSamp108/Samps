@@ -10,5 +10,9 @@ namespace MM3.Simulation
     {
         public int Strength;
         public int Constitution;
+        public int Dexterity;
+        public int Intelligence;
+        public int Charisma;
+        public int Luck;
     }
 }
