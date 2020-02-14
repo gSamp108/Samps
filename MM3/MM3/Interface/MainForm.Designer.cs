@@ -28,7 +28,15 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
+            this.TickTimer = new System.Windows.Forms.Timer(this.components);
             this.SuspendLayout();
+            // 
+            // TickTimer
+            // 
+            this.TickTimer.Enabled = true;
+            this.TickTimer.Interval = 1;
+            this.TickTimer.Tick += new System.EventHandler(this.TickTimer_Tick);
             // 
             // MainForm
             // 
@@ -42,5 +50,7 @@
         }
 
         #endregion
+
+        private System.Windows.Forms.Timer TickTimer;
     }
 }

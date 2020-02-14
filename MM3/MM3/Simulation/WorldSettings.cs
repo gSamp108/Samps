@@ -6,10 +6,8 @@ using System.Threading.Tasks;
 
 namespace MM3.Simulation
 {
-    public sealed class City : PointOfInterest
+    public sealed class WorldSettings
     {
-        public City(Database database, Tile tile) : base(database, tile)
-        {
-        }
+        public float SpecialCreatureChance = 0.01f;
     }
 }

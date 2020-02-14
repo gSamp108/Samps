@@ -13,6 +13,16 @@ namespace MM3.Simulation
             this.Y = y;
         }
 
+        public static bool operator ==(Position a, Position b)
+        {
+            return a.Equals(b);
+        }
+
+        public static bool operator !=(Position a, Position b)
+        {
+            return !a.Equals(b);
+        }
+
         public override bool Equals(object obj)
         {
             return (obj is Position) && (((Position)obj).X == this.X) && (((Position)obj).Y == this.Y);

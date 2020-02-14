@@ -8,16 +8,21 @@ namespace MM3.Simulation
 {
     public sealed class Time
     {
-        public int Year;
-        public int Month;
-        public int Day;
+        public int Year { get; private set; }
+        public int Month { get; private set; }
+        public int Day { get; private set; }
 
         public Time() : this(1000, 1, 1) { }
-        public Time(int year,int month,int day)
+        public Time(int year, int month, int day)
         {
             this.Year = year;
             this.Month = month;
             this.Day = day;
+        }
+
+        public override string ToString()
+        {
+            return "(" + this.Year.ToString("0000") + "." + this.Month.ToString("00") + "." + this.Day.ToString("00") + ")";
         }
 
         public void Tick()

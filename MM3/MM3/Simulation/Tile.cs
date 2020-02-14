@@ -15,6 +15,7 @@ namespace MM3.Simulation
         public Position Position;
         public TerrainTypes Terrain;
         public BiomeTypes Biome;
+        public PointOfInterest PointOfInterest;
 
         public Tile(World world, Position position)
         {

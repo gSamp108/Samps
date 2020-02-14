@@ -77,17 +77,21 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Simulation\Assignment.cs" />
     <Compile Include="Simulation\Bounds.cs" />
     <Compile Include="Simulation\City.cs" />
     <Compile Include="Simulation\Creature.cs" />
+    <Compile Include="Simulation\Database.cs" />
     <Compile Include="Simulation\Dice.cs" />
+    <Compile Include="Simulation\PointOfInterest.cs" />
     <Compile Include="Simulation\Position.cs" />
-    <Compile Include="Simulation\Stats.cs" />
+    <Compile Include="Simulation\Ranked.cs" />
     <Compile Include="Simulation\Tile.cs" />
     <Compile Include="Simulation\TileEntity.cs" />
     <Compile Include="Simulation\Time.cs" />
     <Compile Include="Simulation\World.cs" />
     <Compile Include="Simulation\WorldGenerator.cs" />
+    <Compile Include="Simulation\WorldSettings.cs" />
     <EmbeddedResource Include="Interface\BaseForm.resx">
       <DependentUpon>BaseForm.cs</DependentUpon>
     </EmbeddedResource>

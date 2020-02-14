@@ -8,6 +8,21 @@ namespace MM3.Simulation
 {
     public class WorldGenerator
     {
+        public int WorldSize { get { return this.World.Size; } }
+        public Random Rng { get { return this.World.Rng; } }
+        public World World;
+        public Bounds WorldBounds { get { return new Bounds(this.WorldSize, this.WorldSize); } }
+
+        public WorldGenerator(World world)
+        {
+            this.World = world;
+        }
+
+        private Position RandomPosition()
+        {
+            return new Position(this.Rng.Next(this.WorldSize), this.Rng.Next(this.WorldSize));
+        }
+
         public float LandCoverage = 0.5f;
         public int LandGenerationSeeds = 8;
         public int ForestRarity = 6;
@@ -16,17 +31,12 @@ namespace MM3.Simulation
         public float ColdBiomeCoverage = 0.3f;
         public float HotBiomeCoverage = 0.3f;
         public int HeatmapSpreadModifier = 2;
-
         public Dictionary<Position, int> TileWeight = new Dictionary<Position, int>();
         public HashSet<Position> ClosedLandTiles = new HashSet<Position>();
         public HashSet<Position> OpenLandTiles = new HashSet<Position>();
         public int MinimumLandTiles;
         public Tile[,] Result;
-        public int WorldSize;
-        public Random Rng;
         public Queue<Position> TilesQueuedToClose = new Queue<Position>();
-        public Bounds WorldBounds;
-        public World World;
         public Position HeatmapOrigin;
         public Dictionary<Position, int> Heatmap = new Dictionary<Position, int>();
         public HashSet<Position> CurrentOpenHeatmapTiles = new HashSet<Position>();
@@ -39,12 +49,8 @@ namespace MM3.Simulation
         public int HottestLandTileIndex;
         public HashSet<Position> HottestLandTiles = new HashSet<Position>();
 
-        public Tile[,] Generate(Random rng, World world)
+        public Tile[,] GenerateTiles()
         {
-            this.Rng = rng;
-            this.World = world;
-            this.WorldSize = this.World.Size;
-            this.WorldBounds = new Bounds(this.WorldSize, this.WorldSize);
             this.Result = new Tile[this.WorldSize, this.WorldSize];
             this.MinimumLandTiles = (int)(((float)(this.WorldSize * this.WorldSize)) * this.LandCoverage);
 
@@ -126,7 +132,6 @@ namespace MM3.Simulation
             this.GenerateBiome(Tile.BiomeTypes.Cold, this.ColdBiomeIndex, this.ColdestLandTiles.Random());
             this.GenerateBiome(Tile.BiomeTypes.Hot, this.HotBiomeIndex, this.HottestLandTiles.Random());
         }
-
         private void GenerateBiome(Tile.BiomeTypes biome, int maximumHeatIndex, Position origin)
         {
             var openTiles = new HashSet<Position>();
@@ -168,7 +173,6 @@ namespace MM3.Simulation
                 this.Result[tile.X, tile.Y].Biome = biome;
             }
         }
-
         private void GenerateTerrain()
         {
             for (int x = 0; x < this.WorldSize; x++)
@@ -194,7 +198,6 @@ namespace MM3.Simulation
                 }
             }
         }
-
         private void GenerateIslands()
         {
             while (this.ClosedLandTiles.Count < this.MinimumLandTiles)
@@ -225,7 +228,6 @@ namespace MM3.Simulation
                 }
             }
         }
-
         private void SeedIslands()
         {
             for (int i = 0; i < this.LandGenerationSeeds; i++)
@@ -234,15 +236,59 @@ namespace MM3.Simulation
             }
             if (this.OpenLandTiles.Count == 0) this.OpenRandomTile();
         }
-
         private void OpenRandomTile()
         {
             this.OpenLandTiles.Add(this.RandomPosition());
         }
 
-        private Position RandomPosition()
+        public int MinimumPOISpread = 5;
+        public int POISpreadVariance = 5;
+        public float POISpawnChance = 0.5f;
+
+        public HashSet<Position> GeneratePointsOfInterest()
         {
-            return new Position(this.Rng.Next(this.WorldSize), this.Rng.Next(this.WorldSize));
+            var openList = new HashSet<Position>();
+            var closedList = new HashSet<Position>();
+            var spawnedPOIs = new HashSet<Position>();
+
+            openList.Add(this.RandomPosition());
+
+            while (openList.Count>0)
+            {
+                var selectedPosition = openList.Random(this.Rng);
+                var spreadVariance = this.Rng.Next(this.POISpreadVariance + 1);
+                var spread = this.MinimumPOISpread + spreadVariance;
+                if (this.Rng.NextDouble() < this.POISpawnChance) spawnedPOIs.Add(selectedPosition);
+                var spreadClosedList = new HashSet<Position>();
+                var currentSpreadOpenList = new HashSet<Position>();
+                var nextSpreadOpenList = new HashSet<Position>();
+                currentSpreadOpenList.Add(selectedPosition);
+
+                for (int i = 0; i < spread; i++)
+                {
+                    foreach (var spreadPosition in currentSpreadOpenList)
+                    {
+                        closedList.Add(spreadPosition);
+                        spreadClosedList.Add(spreadPosition);
+                        openList.Remove(spreadPosition);
+                        foreach (var adjacentSpreadPosition in spreadPosition.Adjacent)
+                        {
+                            var wrappedAdjacentSpreadPosition = adjacentSpreadPosition.Wrap(this.WorldBounds);
+                            if (!spreadClosedList.Contains(wrappedAdjacentSpreadPosition))
+                                nextSpreadOpenList.Add(wrappedAdjacentSpreadPosition);
+                        }
+                    }
+                    currentSpreadOpenList = nextSpreadOpenList;
+                    nextSpreadOpenList = new HashSet<Position>();
+                }
+
+                foreach (var spreadTile in currentSpreadOpenList)
+                {
+                    if (!closedList.Contains(spreadTile)) openList.Add(spreadTile);
+                }
+            }
+
+            return spawnedPOIs;
         }
     }
 }
