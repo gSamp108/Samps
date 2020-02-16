@@ -83,6 +83,7 @@
     <Compile Include="Simulation\Creature.cs" />
     <Compile Include="Simulation\Database.cs" />
     <Compile Include="Simulation\Dice.cs" />
+    <Compile Include="Simulation\NameGenerator.cs" />
     <Compile Include="Simulation\PointOfInterest.cs" />
     <Compile Include="Simulation\Position.cs" />
     <Compile Include="Simulation\Ranked.cs" />
@@ -94,6 +95,9 @@
     <Compile Include="Simulation\WorldSettings.cs" />
     <EmbeddedResource Include="Interface\BaseForm.resx">
       <DependentUpon>BaseForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Interface\DrawingForm.resx">
+      <DependentUpon>DrawingForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Interface\MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
@@ -107,6 +111,9 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <None Include="name.generator.db.bin">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

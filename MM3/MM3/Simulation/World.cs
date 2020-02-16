@@ -9,10 +9,11 @@ namespace MM3.Simulation
     public sealed class World
     {
         public Random Rng = new Random();
-        public Time Time = new Time();
+        public Time Time = new Time(1000, 1, 1, 0, 0);
         public int Size;
         public Dice Dice;
         public WorldSettings Settings = new WorldSettings();
+        public NameGenerator NameGenerator = new NameGenerator();
 
         private Tile[,] tiles;
         private Database pointOfInterestDatabase = new Database();
@@ -20,11 +21,33 @@ namespace MM3.Simulation
 
         public World (int size)
         {
+            this.NameGenerator.LoadFromDisk("name.generator.db.bin");
             this.Size = size;
             this.Dice = new Dice(this.Rng);
             var worldGenerator = new WorldGenerator(this);
             this.tiles = worldGenerator.GenerateTiles();
             this.GeneratePointsOfInterest(worldGenerator.GeneratePointsOfInterest());
+            this.Time.MinutePassed += Time_MinutePassed;
+            this.Time.HourPassed += Time_HourPassed;
+            this.Time.DayPassed += Time_DayPassed;
+            this.Time.MonthPassed += Time_MonthPassed;
+            this.Time.YearPassed += Time_YearPassed;
+        }
+
+        private void Time_YearPassed()
+        {
+        }
+        private void Time_MonthPassed()
+        {
+        }
+        private void Time_DayPassed()
+        {
+        }
+        private void Time_HourPassed()
+        {
+        }
+        private void Time_MinutePassed()
+        {
         }
 
         public Creature GenerateCreature(Tile tile)
@@ -34,7 +57,7 @@ namespace MM3.Simulation
 
         public void Tick()
         {
-            this.Time.Tick();
+            this.Time.Advance(0, 1, 0, 0, 0);
             foreach(var member in this.pointOfInterestDatabase.Members)
             {
                 var poi = (PointOfInterest)member;

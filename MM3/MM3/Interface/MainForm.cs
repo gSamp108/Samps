@@ -212,9 +212,10 @@ namespace MM3.Interface
             {
                 var selectedPOI = selectedTile.PointOfInterest;
                 textRenderer.DrawEmptyLine();
+                textRenderer.Draw("Name: " + selectedPOI.Name);
                 textRenderer.Draw("GeneralPopulation: " + selectedPOI.GeneralPopulation);
                 textRenderer.Draw("PopulationGrowthFactor: " + selectedPOI.FarmingInfrastructure);
-                textRenderer.Draw("Extra Population: " + selectedPOI.NamedPopulation.Count);
+                textRenderer.Draw("Extra Population: " + selectedPOI.Visitors.Count);
             }
 
 
