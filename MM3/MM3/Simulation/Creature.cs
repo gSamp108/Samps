@@ -37,7 +37,7 @@ namespace MM3.Simulation
             this.IsHeroic = isHeroic;
 
             var numberOfStatDice = 3;
-            if (this.IsHeroic) numberOfStatDice = 4;
+            if (this.IsHeroic) numberOfStatDice = 5;
 
             this.BaseStats.Charisma = this.Dice.Roll(numberOfStatDice, 6);
             this.BaseStats.Constitution = this.Dice.Roll(numberOfStatDice, 6);
@@ -45,6 +45,14 @@ namespace MM3.Simulation
             this.BaseStats.Intelligence = this.Dice.Roll(numberOfStatDice, 6);
             this.BaseStats.Luck = this.Dice.Roll(numberOfStatDice, 6);
             this.BaseStats.Strength = this.Dice.Roll(numberOfStatDice, 6);
+        }
+
+        public bool OfferAssignment(Assignment assignment)
+        {
+            var chance = 0.5d;
+            if (this.IsHeroic) chance /= 2d;
+            if (this.Rng.NextDouble() < chance) return true;
+            return false;
         }
     }
 }

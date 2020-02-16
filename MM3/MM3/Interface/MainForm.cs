@@ -214,7 +214,7 @@ namespace MM3.Interface
                 textRenderer.DrawEmptyLine();
                 textRenderer.Draw("GeneralPopulation: " + selectedPOI.GeneralPopulation);
                 textRenderer.Draw("PopulationGrowthFactor: " + selectedPOI.FarmingInfrastructure);
-                textRenderer.Draw("Extra Population: " + selectedPOI.Population.Count);
+                textRenderer.Draw("Extra Population: " + selectedPOI.NamedPopulation.Count);
             }
 
 

@@ -10,7 +10,7 @@ namespace MM3.Simulation
     {
         public Ranked GeneralPopulation;
         public Ranked FarmingInfrastructure;
-        public HashSet<Creature> Population = new HashSet<Creature>();
+        public HashSet<Creature> NamedPopulation = new HashSet<Creature>();
         public Assignment Leader;
         public Assignment FarmingSupervisor;
 
@@ -71,20 +71,26 @@ namespace MM3.Simulation
 
         private void FillVacancy(Assignment assignment)
         {
-            var creature = this.GetUnassignedCreatureFromPopulation();
-            if (creature != null)
+            var selectedCreature = default(Creature);
+            var unassignedPopulation = this.NamedPopulation.Where(o => o.Assignment == null).ToList();
+            if (unassignedPopulation.Count > 0)
             {
-                creature.Assignment = assignment;
-                assignment.Creature = creature;
+                foreach (var unassignedCreature in unassignedPopulation)
+                {
+                    if (unassignedCreature.OfferAssignment(assignment))
+                    {
+                        selectedCreature = unassignedCreature;
+                        break;
+                    }
+                }
             }
-        }
+            if (selectedCreature == null) selectedCreature = this.GenerateCreatureFromPopulation(false);
 
-        private Creature GetUnassignedCreatureFromPopulation()
-        {
-            var unassignedHeros = this.Population.Where(o => o.Assignment == null).ToList();
-            if (unassignedHeros.Count > 0) return unassignedHeros.Random();
-            else if (this.GeneralPopulation.Level > 0) return this.GenerateCreatureFromPopulation(false);
-            else return null;
+            if (selectedCreature != null)
+            {
+                selectedCreature.Assignment = assignment;
+                assignment.Creature = selectedCreature;
+            }
         }
 
         private Creature GenerateCreatureFromPopulation(bool isHeroic)
@@ -92,7 +98,7 @@ namespace MM3.Simulation
             this.GeneralPopulation.ForceLevelChange(-1);
             var creature = this.World.GenerateCreature(this.Tile);
             creature.Generate(this, isHeroic);
-            this.Population.Add(creature);
+            this.NamedPopulation.Add(creature);
             return creature;
         }
 
