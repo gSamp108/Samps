@@ -21,7 +21,7 @@ namespace Lameo
             {
                 wg.Tick();
             }
-            foreach(var point in wg.open)
+            foreach(var point in wg.Open)
             {
                 this.Tiles.Add(point);
             }
