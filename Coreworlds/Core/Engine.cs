@@ -10,7 +10,7 @@ namespace Coreworlds.Core
     /// </summary>
     public class Engine : Game
     {
-        private const int tileSize = 32;
+        private const int tileSize = 8;
 
         private GraphicsDeviceManager graphics;
         private SpriteBatch spriteBatch;
@@ -114,7 +114,7 @@ namespace Coreworlds.Core
                     var renderPosition = new Vector2((x * Engine.tileSize) - renderOffset.X, (y * Engine.tileSize) - renderOffset.Y);
                     var tile = this.world.GetTile(tilePosition);
                     if (tile.Terrain == TerrainTypes.DeepWater) this.spriteBatch.Draw(this.textures.Get("deepwater"), new Rectangle((int)renderPosition.X, (int)renderPosition.Y, Engine.tileSize, Engine.tileSize), Color.White);
-                    else if (tile.Terrain == TerrainTypes.Water) this.spriteBatch.Draw(this.textures.Get("wa456ter"), new Rectangle((int)renderPosition.X, (int)renderPosition.Y, Engine.tileSize, Engine.tileSize), Color.White);
+                    else if (tile.Terrain == TerrainTypes.Water) this.spriteBatch.Draw(this.textures.Get("water"), new Rectangle((int)renderPosition.X, (int)renderPosition.Y, Engine.tileSize, Engine.tileSize), Color.White);
                     else if (tile.Terrain == TerrainTypes.Sand) this.spriteBatch.Draw(this.textures.Get("sand"), new Rectangle((int)renderPosition.X, (int)renderPosition.Y, Engine.tileSize, Engine.tileSize), Color.White);
                     else if (tile.Terrain == TerrainTypes.Grass) this.spriteBatch.Draw(this.textures.Get("grass"), new Rectangle((int)renderPosition.X, (int)renderPosition.Y, Engine.tileSize, Engine.tileSize), Color.White);
                 }

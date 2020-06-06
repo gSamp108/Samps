@@ -12,6 +12,12 @@ namespace Coreworlds.Core
 
         private Dictionary<Position, Chunk> chunks = new Dictionary<Position, Chunk>();
 
+        public World()
+        {
+            var rng = new Random();
+            Noise.Seed = rng.Next();
+        }
+
         public Chunk GetChunk(Position chunkPosition)
         {
             if (!this.chunks.ContainsKey(chunkPosition))
