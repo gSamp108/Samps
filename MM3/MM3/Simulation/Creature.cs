@@ -26,9 +26,8 @@ namespace MM3.Simulation
         public PointOfInterest HomePOI;
         public bool IsHeroic;
         public bool HasBeenGenerated;
-        public Assignment Assignment;
 
-        public Creature(Database database, Tile tile) : base(database, tile) { }
+        public Creature(Database database, World world, Position position) : base(database, world, position) { }
 
         public void Generate(PointOfInterest homePOI, bool isHeroic)
         {
@@ -47,12 +46,5 @@ namespace MM3.Simulation
             this.BaseStats.Strength = this.Dice.Roll(numberOfStatDice, 6);
         }
 
-        public bool OfferAssignment(Assignment assignment)
-        {
-            var chance = 0.5d;
-            if (this.IsHeroic) chance /= 2d;
-            if (this.Rng.NextDouble() < chance) return true;
-            return false;
-        }
     }
 }

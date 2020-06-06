@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Simulation
+namespace Simulation.UI
 {
     public sealed class GraphicsTextHelper
     {

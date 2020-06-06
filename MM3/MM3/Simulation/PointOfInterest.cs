@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,15 +9,28 @@ namespace MM3.Simulation
 {
     public class PointOfInterest : TileEntity
     {
+        private const int CurrentVersion = 1;
+
+        public string Name { get; private set; }
         public Ranked GeneralPopulation;
         public Ranked FarmingInfrastructure;
-        public HashSet<Creature> Visitors = new HashSet<Creature>();
-        public Assignment Leader;
-        public Assignment WatchLeader;
-        public Assignment Watchman;
 
-        public PointOfInterest(Database database, Tile tile) : base(database, tile)
+        private HashSet<int> VisitorIds = new HashSet<int>();
+        public IEnumerable<Creature> Visitors
         {
+            get
+            {
+                foreach(var id in this.VisitorIds)
+                {
+                    yield return this.World.GetCreature(id);
+                }
+            }
+        }
+
+
+        public PointOfInterest(Database database, World world, Position position) : base(database, world, position)
+        {
+            this.Name = this.World.NameGenerator.GenerateName(this.Rng);
             this.GeneralPopulation = new Ranked(this.Dice.Roll(10, 10), 100);
             this.GeneralPopulation.LevelChanged += this.GeneralPopulation_LevelChanged;
             this.SearchGeneralPopulationForHeroicCreatures();
@@ -49,59 +63,7 @@ namespace MM3.Simulation
         public override void Tick(Time time)
         {
             base.Tick(time);
-            this.FillVacancies();
             this.TickPopulationGrowth();
-        }
-
-        private void FillVacancies()
-        {
-            if (this.Leader == null) this.Leader = new Assignment(Assignment.AssignmentTypes.POILeader, this);
-            if (this.WatchLeader == null) this.WatchLeader = new Assignment(Assignment.AssignmentTypes.POIWatchLeader, this);
-            if (this.Watchman == null) this.Watchman = new Assignment(Assignment.AssignmentTypes.POIWatchman, this);
-
-            if (this.Leader.Creature == null)
-            {
-                if (this.WatchLeader.Creature == null) this.FillVacancy(this.Leader);
-                else this.Leader.Assign(this.WatchLeader.Creature);
-            }
-
-            if (this.WatchLeader.Creature == null)
-            {
-                if (this.Watchman.Creatures.Count > 0)
-                {
-                    var creature = this.Watchman.Creatures.Random();
-                    this.WatchLeader.Assign(creature);
-                }
-                else this.FillVacancy(this.WatchLeader);
-            }
-
-            var watchCount = (this.GeneralPopulation.Level / 10);
-            var watchmanSelectionFailed = false;
-            while (this.Watchman.Creatures.Count < watchCount && !watchmanSelectionFailed)
-            {
-                var selectedCreature = this.GenerateCreatureFromPopulation(false);
-                if (selectedCreature == null) watchmanSelectionFailed = true;
-                else this.Watchman.Assign(selectedCreature);
-            }
-        }
-
-        private void FillVacancy(Assignment assignment)
-        {
-            var selectedCreature = default(Creature);
-            var unassignedPopulation = this.Visitors.Where(o => o.Assignment == null).ToList();
-            if (unassignedPopulation.Count > 0)
-            {
-                foreach (var unassignedCreature in unassignedPopulation)
-                {
-                    if (unassignedCreature.OfferAssignment(assignment))
-                    {
-                        selectedCreature = unassignedCreature;
-                        break;
-                    }
-                }
-            }
-            if (selectedCreature == null) selectedCreature = this.GenerateCreatureFromPopulation(false);
-            if (selectedCreature != null) assignment.Assign(selectedCreature);
         }
 
         private Creature GenerateCreatureFromPopulation(bool isHeroic)
@@ -109,8 +71,13 @@ namespace MM3.Simulation
             this.GeneralPopulation.ForceLevelChange(-1);
             var creature = this.World.GenerateCreature(this.Tile);
             creature.Generate(this, isHeroic);
-            this.Visitors.Add(creature);
+            this.AddVisitor(creature);
             return creature;
+        }
+
+        public void AddVisitor(Creature creature)
+        {
+            this.VisitorIds.Add(creature.DatabaseId);
         }
 
         private void TickPopulationGrowth()
@@ -120,6 +87,33 @@ namespace MM3.Simulation
             if (this.Rng.Next(3) == 0) randomness = -randomness;
             var growthFactor = baseGrowthFactor + randomness;
             this.GeneralPopulation.ChangeXp(growthFactor);
+        }
+
+        public override void SaveToStream(BinaryWriter writer)
+        {
+            base.SaveToStream(writer);
+            writer.Write(PointOfInterest.CurrentVersion);
+            writer.Write(this.Name);
+            writer.Write(this.GeneralPopulation);
+            writer.Write(this.FarmingInfrastructure);
+            writer.Write(this.VisitorIds.Count);
+            foreach(var visitorId in this.VisitorIds)
+            {
+                writer.Write(visitorId);
+            }
+        }
+        public override void LoadFromStream(BinaryReader reader)
+        {
+            base.LoadFromStream(reader);
+            var version = reader.ReadInt32();
+            this.Name = reader.ReadString();
+            this.GeneralPopulation = reader.ReadRanked();
+            this.FarmingInfrastructure = reader.ReadRanked();
+            var visitorCount = reader.ReadInt32();
+            for (int i = 0; i < visitorCount; i++)
+            {
+                this.VisitorIds.Add(reader.ReadInt32());
+            }
         }
     }
 }

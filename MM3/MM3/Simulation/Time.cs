@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ namespace MM3.Simulation
 {
     public sealed class Time
     {
+        private const int CurrentVersion = 1;
         private const int MinutesPerHour = 60;
         private const int HoursPerDay = 24;
         private const int DaysPerMonth = 30;
@@ -111,6 +113,28 @@ namespace MM3.Simulation
             if (dayPassed) this.DayPassed();
             if (monthPassed) this.MonthPassed();
             if (yearPassed) this.YearPassed();
+        }
+
+        public void SaveToStream(BinaryWriter writer)
+        {
+            writer.Write(Time.CurrentVersion);
+            writer.Write(this.Minute);
+            writer.Write(this.Hour);
+            writer.Write(this.Day);
+            writer.Write(this.Month);
+            writer.Write(this.Year);
+        }
+        public void LoadFromStream(BinaryReader reader)
+        {
+            var version = reader.ReadInt32();
+            if (version == 1)
+            {
+                this.Minute = reader.ReadInt32();
+                this.Hour = reader.ReadInt32();
+                this.Day = reader.ReadInt32();
+                this.Month = reader.ReadInt32();
+                this.Year = reader.ReadInt32();
+            }
         }
     }
 }

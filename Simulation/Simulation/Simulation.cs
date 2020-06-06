@@ -12,7 +12,7 @@ namespace Simulation
         public MinMax ClustersPerUniverse = new MinMax(12, 50);
         public MinMax WorldsPerCluster = new MinMax(1, 9);
         public MinMax RegionsPerWorld = new MinMax(8, 16);
-        public int[] AtmosphereTierChance = { 7, 11, 15 };
+        public int[] AtmosphereTierChance = { 10, 13, 17 };
         public double[] OrganicsBonusAtTier = { 0.2d, 0.8d, 1d, 2d };
         public double[] MineralsBonusAtTier = { 1.5d, 1.2d, 1d, 0.8d };
         public double[] RadiologicalsBonusAtTier = { 2d, 1.2d, 1d, 0.5d };

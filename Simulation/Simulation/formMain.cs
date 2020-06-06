@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Simulation.UI;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -13,14 +14,9 @@ namespace Simulation
     public partial class formMain : Form
     {
         private bool showHelpMenu;
+        private List<TextMenu> menus = new List<TextMenu>();
+
         private Universe universe;
-        private int universeMenuPosition;
-        private Cluster cluster;
-        private int clusterMenuPosition;
-        private World world;
-        private int worldMenuPosition;
-        private Region region;
-        private int regionMenuPosition;
 
         public formMain()
         {
@@ -34,38 +30,64 @@ namespace Simulation
             this.Invalidate();
         }
 
-        protected override void OnKeyUp(KeyEventArgs e)
+        protected override void OnKeyDown(KeyEventArgs e)
         {
             base.OnKeyUp(e);
             if (e.KeyCode == Keys.F1) this.showHelpMenu = !this.showHelpMenu;
-            if (e.KeyCode == Keys.F2) this.universe = new Universe();
-            if (e.KeyCode == Keys.Up) this.MoveCurrentMenuIndex(-1);
-            if (e.KeyCode == Keys.Down) this.MoveCurrentMenuIndex(1);
-            if (e.KeyCode == Keys.Left) this.MoveIntoNextMenu();
-            if (e.KeyCode == Keys.Right) this.MoveBackToLastMenu();
+            if (e.KeyCode == Keys.F2)
+            {
+                this.menus.Clear();
+                this.universe = new Universe();
+                var universeMenu = new TextMenu(new Point());
+                universeMenu.GoForward += this.AllMenus_GoForward;
+                foreach (var cluster in this.universe.Clusters.All<Cluster>())
+                {
+                    universeMenu.AddItem(cluster);
+                }
+                this.menus.Add(universeMenu);
+            }
+            if (this.menus.Count > 0) this.menus.Last().ReceiveInput(e);
             this.Invalidate();
         }
 
-        private void MoveBackToLastMenu()
+        private void AllMenus_GoForward(object selectedItem)
         {
+            var menu = new TextMenu(new Point());
+            menu.GoBack += this.AllMenus_GoBack;
+            menu.GoForward += this.AllMenus_GoForward;
+
+            if (selectedItem is Cluster cluster)
+            {
+                foreach (var world in cluster.Worlds)
+                {
+                    menu.AddItem(world);
+                }
+                this.menus.Add(menu);
+            }
+            else if (selectedItem is World world)
+            {
+                foreach (var region in world.Regions)
+                {
+                    menu.AddItem(region);
+                }
+                this.menus.Add(menu);
+            }
+            else if (selectedItem is Region region)
+            {
+                menu.AddItem("Minerals " + region.Minerals);
+                menu.AddItem("Organics " + region.Organics);
+                menu.AddItem("Radiologicals " + region.Radiologicals);
+                this.menus.Add(menu);
+            }
+
+            this.Invalidate();
         }
 
-        private void MoveIntoNextMenu()
+        private void AllMenus_GoBack()
         {
-            if (this.universe == null) return;
-            else if (this.cluster == null) this.universeMenuPosition = (this.universeMenuPosition + amount).Clamp(0, this.universe.Clusters.Count - 1);
-            else if (this.world == null) this.clusterMenuPosition = (this.clusterMenuPosition + amount).Clamp(0, this.cluster.Worlds.Count - 1);
-            else if (this.region == null) this.worldMenuPosition = (this.worldMenuPosition + amount).Clamp(0, this.world.Regions.Count - 1);
-            else this.regionMenuPosition = 0;
-        }
-
-        private void MoveCurrentMenuIndex(int amount)
-        {
-            if (this.universe == null) return;
-            else if (this.cluster == null) this.universeMenuPosition = (this.universeMenuPosition + amount).Clamp(0, this.universe.Clusters.Count - 1);
-            else if (this.world == null) this.clusterMenuPosition = (this.clusterMenuPosition + amount).Clamp(0, this.cluster.Worlds.Count - 1);
-            else if (this.region == null) this.worldMenuPosition = (this.worldMenuPosition + amount).Clamp(0, this.world.Regions.Count - 1);
-            else this.regionMenuPosition = 0;
+            var currentMenu = this.menus.Last();
+            this.menus.Remove(currentMenu);
+            this.Invalidate();
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -74,48 +96,19 @@ namespace Simulation
             if (this.showHelpMenu) this.PaintHelpMenu(e.Graphics);
             else this.PaintStandardDisplay(e.Graphics);
             e.Graphics.DrawString("F1 - HELP", this.Font, Brushes.White, new Point(this.ClientRectangle.Width - 100, 10));
-
         }
 
         private void PaintStandardDisplay(Graphics canvas)
         {
-            var textCanvas = new GraphicsTextHelper(canvas, this.Font, Brushes.White, new Point(10, 10), 12);
-            if (this.universe == null) this.PaintEmptyDisplay(canvas, textCanvas);
-            else if (this.cluster == null) this.PaintUniverseMenu(canvas, textCanvas);
-            else if (this.world == null) this.PaintClusterMenu(canvas, textCanvas);
-            else if (this.region == null) this.PaintWorldMenu(canvas, textCanvas);
-            else this.PaintRegionMenu(canvas, textCanvas);
-        }
+            if (this.menus.Count > 0) this.menus.Last().Paint(canvas, this.Font);
+            else canvas.DrawString("Nothing Loaded", this.Font, Brushes.White, new Point(10, 10));
 
-        private void PaintRegionMenu(Graphics canvas, GraphicsTextHelper textCanvas)
-        {
-            throw new NotImplementedException();
-        }
-
-        private void PaintWorldMenu(Graphics canvas, GraphicsTextHelper textCanvas)
-        {
-            throw new NotImplementedException();
-        }
-
-        private void PaintClusterMenu(Graphics canvas, GraphicsTextHelper textCanvas)
-        {
-            throw new NotImplementedException();
-        }
-
-        private void PaintUniverseMenu(Graphics canvas, GraphicsTextHelper textCanvas)
-        {
-            var index = 0;
-            foreach(var cluster in this.universe.Clusters.All<Cluster>())
-            {
-                if (index == this.universeMenuPosition) textCanvas.Draw(">>> " + cluster.ToString(), Brushes.Cyan);
-                else textCanvas.Draw("    " + cluster.ToString());
-                index += 1;
-            }
-        }
-
-        private void PaintEmptyDisplay(Graphics canvas, GraphicsTextHelper textCanvas)
-        {
-            textCanvas.Draw("Nothing Loaded");
+            //var textCanvas = new GraphicsTextHelper(canvas, this.Font, Brushes.White, new Point(10, 10), 12);
+            //if (this.universe == null) this.PaintEmptyDisplay(canvas, textCanvas);
+            //else if (this.cluster == null) this.PaintUniverseMenu(canvas, textCanvas);
+            //else if (this.world == null) this.PaintClusterMenu(canvas, textCanvas);
+            //else if (this.region == null) this.PaintWorldMenu(canvas, textCanvas);
+            //else this.PaintRegionMenu(canvas, textCanvas);
         }
 
         private void PaintHelpMenu(Graphics canvas)

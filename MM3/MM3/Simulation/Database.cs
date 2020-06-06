@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,6 +18,15 @@ namespace MM3.Simulation
             {
                 this.Database = database;
                 this.DatabaseId = this.Database.RegisterNewMember(this);
+            }
+
+            public virtual void SaveToStream(BinaryWriter writer)
+            {
+                writer.Write(this.DatabaseId);
+            }
+            public virtual void LoadFromStream(BinaryReader reader)
+            {
+                this.DatabaseId = reader.ReadInt32();
             }
         }
 
@@ -37,7 +47,10 @@ namespace MM3.Simulation
         private int GetNewMemberId()
         {
             if (this.unusedIds.Count > 0) return this.unusedIds.Dequeue();
-            else return (this.nextId++);
+            else
+            {
+                return (++this.nextId);
+            }
         }
 
         public IEnumerable<Member> Members
@@ -56,6 +69,12 @@ namespace MM3.Simulation
                     this.members.Add(member.DatabaseId, member);
                 }
             }
+        }
+
+        public Member GetMember(int id)
+        {
+            if (this.members.ContainsKey(id)) return this.members[id];
+            return null;
         }
     }
 }

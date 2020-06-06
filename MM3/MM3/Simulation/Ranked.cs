@@ -32,7 +32,7 @@ namespace MM3.Simulation
 
         public event Action<int> LevelChanged = delegate (int direction) { };
 
-        public Ranked(RankedTypes type, int level, int xp, int difficultyFactor, bool usePassionSystem, int passion)
+        public Ranked(RankedTypes type, int level, float xp, int difficultyFactor, bool usePassionSystem, int passion)
         {
             this.Type = type;
             this.Level = level;

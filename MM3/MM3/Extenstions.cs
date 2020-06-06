@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -55,5 +56,36 @@ namespace MM3
             }
             canvas.DrawString(text, font, forecolor, renderPosition);
         }
+        public static void Write(this BinaryWriter writer, Simulation.Position position)
+        {
+            writer.Write(position.X);
+            writer.Write(position.Y);
+        }
+        public static Simulation.Position ReadPosition(this BinaryReader reader)
+        {
+            var x = reader.ReadInt32();
+            var y = reader.ReadInt32();
+            return new Simulation.Position(x, y);
+        }
+        public static void Write(this BinaryWriter writer, Simulation.Ranked ranked)
+        {
+            writer.Write(ranked.DifficultyFactor);
+            writer.Write(ranked.Level);
+            writer.Write(ranked.Passion);
+            writer.Write((int)ranked.Type);
+            writer.Write(ranked.UsePassionSystem);
+            writer.Write(ranked.Xp);
+        }
+        public static Simulation.Ranked ReadRanked(this BinaryReader reader)
+        {
+            var difficultyFactor = reader.ReadInt32();
+            var level = reader.ReadInt32();
+            var passion = reader.ReadInt32();
+            var type = (Simulation.Ranked.RankedTypes)reader.ReadInt32();
+            var usePassionSystem = reader.ReadBoolean();
+            var xp = reader.ReadSingle();
+            return new Simulation.Ranked(type, level, xp, difficultyFactor, usePassionSystem, passion);
+        }
+
     }
 }

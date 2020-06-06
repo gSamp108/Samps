@@ -98,7 +98,7 @@ namespace MM3.Interface
         public MainForm()
         {
             InitializeComponent();
-            this.world = new World(100);
+            this.world = new World("debug",100);
         }
 
         protected override void OnKeyDown(KeyEventArgs e)
@@ -108,7 +108,7 @@ namespace MM3.Interface
             if (e.KeyCode == Keys.F1) this.uiOptions.ShowGrid = !this.uiOptions.ShowGrid;
             if (e.KeyCode == Keys.F2) this.uiOptions.RenderDebugInfo = !this.uiOptions.RenderDebugInfo;
             if (e.KeyCode == Keys.F3) (new DrawingForm()).Show();
-            if (e.KeyCode == Keys.F4) this.world = new World(100);
+            if (e.KeyCode == Keys.F4) this.world = new World("debug", 100);
             if (e.KeyCode == Keys.Space) this.simulationPaused = !this.simulationPaused;
 
             this.Invalidate();
@@ -215,7 +215,7 @@ namespace MM3.Interface
                 textRenderer.Draw("Name: " + selectedPOI.Name);
                 textRenderer.Draw("GeneralPopulation: " + selectedPOI.GeneralPopulation);
                 textRenderer.Draw("PopulationGrowthFactor: " + selectedPOI.FarmingInfrastructure);
-                textRenderer.Draw("Extra Population: " + selectedPOI.Visitors.Count);
+                textRenderer.Draw("Extra Population: " + selectedPOI.Visitors.Count());
             }
 
 

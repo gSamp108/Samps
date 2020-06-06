@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,46 +7,44 @@ using System.Threading.Tasks;
 
 namespace Simulation
 {
-    public  class IdStore
+    public sealed class IdStore<type> : IEnumerable<type> where type : DataStore.Member
     {
-        private Dictionary<int, IdMemeber> members = new Dictionary<int, IdMemeber>();
-        private int nextId;
-        private Queue<int> disposedIds = new Queue<int>();
+        public DataStore DataStore { get; private set; }
 
-        public int Add(IdMemeber memeber)
+        private HashSet<int> memberIds = new HashSet<int>();
+
+        public IdStore(DataStore dataStore)
         {
-            var id = this.nextId;
-            if (this.disposedIds.Count > 0) id = this.disposedIds.Dequeue();
-            else this.nextId += 1;
-            this.members.Add(id, memeber);
-            return id;
+            this.DataStore = dataStore;
         }
-        public void Remove(IdMemeber member)
+        public void Add(int id)
         {
-            this.Remove(member.Id);
+            this.memberIds.Add(id);
         }
-        public void Remove (int id)
+        public void Remove(int id)
         {
-            this.disposedIds.Enqueue(id);
-            this.members.Remove(id);
+            this.memberIds.Remove(id);
         }
-        public IdMemeber Get(int id)
+        public type Get(int id)
         {
-            if (this.members.ContainsKey(id)) return this.members[id];
-            return null;
+            return this.DataStore.Get<type>(id);
         }
-        public type Get<type>(int id) where type : IdMemeber 
+
+        public IEnumerator<type> GetEnumerator()
         {
-            if (this.members.ContainsKey(id)) return (type)this.members[id];
-            return null;
-        }
-        public IEnumerable<type> All<type>() where type : IdMemeber
-        {
-            foreach(var member in this.members.Values)
+            foreach(var id in this.memberIds)
             {
-                yield return (type)member;
+                yield return this.DataStore.Get<type>(id);
             }
         }
-        public int Count { get { return this.members.Count; } }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            foreach (var id in this.memberIds)
+            {
+                yield return this.DataStore.Get<type>(id);
+            }
+        }
     }
 }
+
